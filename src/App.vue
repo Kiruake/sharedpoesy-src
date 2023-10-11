@@ -16,13 +16,17 @@ import PocketBase from "pocketbase";
     <div class="wrapper" id="signOut">
       <div><SignIn msg="User, please sign in !" /></div>
       <label>email: </label><br />
-      <input type="email" required id="email" placeholder="username@domain.tld"
+      <input
+        type="email"
+        required
+        id="email"
+        placeholder="username@domain.tld"
       /><br />
       <label>password: </label><br />
       <input type="password" required id="passwd" /><br />
-      <button v-on:click="register()">Sign Up</button>
-      <button v-on:click="login()">Sign In</button>
-      <button v-on:click="logout()">Sign out</button>
+      <button v-on:click="loginGoogle()">Sign In Google Acc</button>
+      <button v-on:click="loginGithub()">Sign In Git Acc</button>
+      <button v-on:click="add()">Add</button>
       <p><label id="status"> You are not yet connected </label><br /></p>
     </div>
   </header>
@@ -31,53 +35,47 @@ import PocketBase from "pocketbase";
 </template>
 
 <script>
+var connected = false;
 var pocketbase_ip = "";
-  if (import.meta.env.MODE === "production")
-  pocketbase_ip = "http://193.168.146.10:80";
- else pocketbase_ip = "http://127.0.0.1:8090";
+//if (import.meta.env.MODE === "production")
+  pocketbase_ip = "https://sharedpoesy.ayrton-chaves.fr";
+//sselse pocketbase_ip = "http://127.0.0.1:8090";
 const pb = new PocketBase(pocketbase_ip);
-
+var currentUser;
 export default {
   methods: {
-
-    async logout() {
-      await pb.authStore.clear();
-      document.getElementById("status").innerHTML = "You are now logged out";
-    },
     //this method allows a new user to sign up the system. Once done, the user receives an email
     //asking for account validation. Once the validation made the user is added to the system
-    async login() {
-      await pb
-        .collection("users")
-        .authWithPassword(
-          document.getElementById("email").value,
-          document.getElementById("passwd").value
-        );
-        if (pb.authStore.isValid) {
-          document.getElementById("status").innerHTML = "You are now logged in";
-        }
-    },
-    //this method allows the already registred user to log in the system.
-    async register() {
-      const currentUser = await pb.collection("users").create({
-        email: document.getElementById("email").value,
-        password: document.getElementById("passwd").value,
-        passwordConfirm: document.getElementById("passwd").value,
-        name: "John Di",
-      });
-      if (currentUser) {
-        document.getElementById("status").innerHTML =
-          "Wainting for your email validation ...";
-        await pb
-          .collection("users")
-          .requestVerification(document.getElementById("email").value);
+    async loginGoogle() {
+      await pb.collection("users").authWithOAuth2({ provider: "google" });
+      if (pb.authStore.isValid) {
+        document.getElementById("status").innerHTML = "You are now logged in with Google";
+        connected = true;
+        currentUser=pb.authStore.model;
       }
     },
+    
+    async loginGithub() {
+      await pb.collection("users").authWithOAuth2({ provider: "github" });
+      if (pb.authStore.isValid) {
+        document.getElementById("status").innerHTML = "You are now logged in with Github";
+        connected = true;
+        currentUser=pb.authStore.model;
+      }
+    }
+    
+    /*,
+    async add() {
+      const record = await pb.collection("poems").create({
+        title: "good year",
+        content: "how a nice year",
+        private: false,
+        email:currentUser.email
+      });
+    },*/
+    //this method allows the already registred user to log in the system.
   },
 };
-
-
-
 </script>
 
 <style>
@@ -106,9 +104,10 @@ header {
 
 .logo {
   display: block;
-  margin: O auto 2rem;
+  margin: 0 auto 2rem;
 }
 
+a,
 .green {
   text-decoration: none;
   color: hsla(160, 100%, 37%, 1);
@@ -151,5 +150,3 @@ header {
   }
 }
 </style>
-
-
